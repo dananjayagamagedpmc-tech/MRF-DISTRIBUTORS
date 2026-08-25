@@ -1,0 +1,5 @@
+# Android SDK path
+# Uncomment and set your SDK path here
+# sdk.dir=/home/username/Android/sdk
+# Or on Windows:
+# sdk.dir=C:\\Android\\sdk
