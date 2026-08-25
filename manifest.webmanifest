@@ -1,0 +1,19 @@
+{
+  "name": "Tyre Sales MOC POS",
+  "short_name": "Tyre POS",
+  "description": "Offline tyre dealer and distributor management system",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "./logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

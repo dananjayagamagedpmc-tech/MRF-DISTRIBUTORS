@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tyre Dealer & Distributor Management System</title>
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.webmanifest">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: 'var(--sys-primary-color)',
+                        'brand-dark': 'var(--sys-primary-dark)',
+                        'brand-light': 'var(--sys-primary-light)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col transition-all duration-300 z-20 shadow-xl">
+        <div class="h-16 flex items-center justify-center border-b border-slate-700 px-4">
+            <i class="fa-solid fa-tire text-brand text-2xl mr-3"></i>
+            <h1 class="text-xl font-bold truncate">TYRE SALES MOC</h1>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1">
+                <li>
+                    <a href="#" onclick="app.switchView('dashboard')" class="nav-link active flex items-center px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" data-target="dashboard">
+                        <i class="fa-solid fa-chart-pie w-6"></i>
+                        <span id="nav-label-dashboard" class="font-medium ml-3">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="app.switchView('distributors')" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" data-target="distributors">
+                        <i class="fa-solid fa-users w-6"></i>
+                        <span id="nav-label-distributors" class="font-medium ml-3">Distributors</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="app.switchView('targets')" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" data-target="targets">
+                        <i class="fa-solid fa-bullseye w-6"></i>
+                        <span id="nav-label-targets" class="font-medium ml-3">Targets & Sales</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="app.switchView('allowance')" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" data-target="allowance">
+                        <i class="fa-solid fa-hand-holding-dollar w-6"></i>
+                        <span id="nav-label-allowance" class="font-medium ml-3">Rep Allowance</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="app.switchView('analytics')" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" data-target="analytics">
+                        <i class="fa-solid fa-chart-line w-6"></i>
+                        <span id="nav-label-analytics" class="font-medium ml-3">Analytics</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="app.switchView('reports')" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" data-target="reports">
+                        <i class="fa-solid fa-file-excel w-6"></i>
+                        <span id="nav-label-reports" class="font-medium ml-3">Reports</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <div class="border-t border-slate-700 p-4">
+            <a href="#" onclick="app.switchView('settings')" class="nav-link flex items-center px-2 py-2 text-slate-400 hover:text-white transition-colors" data-target="settings">
+                <i class="fa-solid fa-gear w-6"></i>
+                <span class="ml-3">Settings</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative">
+        
+        <!-- Topbar -->
+        <header class="h-16 bg-white shadow-sm border-b border-slate-200 flex items-center justify-between px-6 z-10">
+            <div class="flex items-center">
+                <img src="logo.png" alt="DPMC MRF Logo" class="h-14 object-contain" id="pos-logo-display" onerror="this.src='https://placehold.co/200x50?text=LOGO';">
+                <h2 id="pos-name-display" class="hidden"></h2>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" id="global-search" placeholder="Search Account, Name..." class="pl-10 pr-4 py-2 border border-slate-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-64 transition-all" oninput="app.handleGlobalSearch(this.value)">
+                    <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400"></i>
+                    
+                    <div id="search-results" class="hidden absolute top-full mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                        <!-- Results -->
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Views Container -->
+        <main class="flex-1 overflow-y-auto p-6 relative">
+            
+            <!-- Dashboard View -->
+            <section id="view-dashboard" class="app-view">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-slate-800">Dashboard Overview</h3>
+                </div>
+                <!-- Metric Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center relative overflow-hidden group">
+                        <div class="absolute -right-6 -top-6 text-brand opacity-10 group-hover:scale-110 transition-transform duration-500"><i class="fa-solid fa-users text-9xl"></i></div>
+                        <div class="rounded-full bg-brand-light bg-opacity-20 p-4 text-brand mr-5"><i class="fa-solid fa-users text-2xl"></i></div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Active Distributors</p>
+                            <h4 class="text-3xl font-bold text-slate-800" id="metric-distributors">0</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col relative overflow-hidden group">
+                        <div class="absolute -right-6 -top-6 text-emerald-500 opacity-10 group-hover:scale-110 transition-transform duration-500"><i class="fa-solid fa-boxes-stacked text-9xl"></i></div>
+                        
+                        <div class="flex items-center mb-2">
+                            <div class="rounded-full bg-emerald-100 p-3 text-emerald-600 mr-3"><i class="fa-solid fa-boxes-stacked text-lg"></i></div>
+                            <p class="text-sm font-medium text-slate-500">Overall Sales QTY (This Month)</p>
+                        </div>
+                        
+                        <div class="mt-2">
+                            <h4 class="text-3xl font-bold text-slate-800" id="metric-sales-overall">0</h4>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center justify-between relative overflow-hidden group">
+                        <div class="absolute -right-6 -top-6 text-amber-500 opacity-10 group-hover:scale-110 transition-transform duration-500"><i class="fa-solid fa-clock-rotate-left text-9xl"></i></div>
+                        <div class="flex items-center z-10">
+                            <div class="rounded-full bg-amber-100 p-4 text-amber-600 mr-5"><i class="fa-solid fa-clock-rotate-left text-2xl"></i></div>
+                            <div>
+                                <p class="text-sm font-medium text-slate-500 mb-1">Pending Allowances</p>
+                                <h4 class="text-3xl font-bold text-slate-800" id="metric-allowances">0</h4>
+                            </div>
+                        </div>
+                        <button onclick="app.viewPendingAllowances()" class="bg-amber-50 hover:bg-amber-100 text-amber-600 px-3 py-1 rounded text-sm font-medium border border-amber-200 transition-colors z-10">
+                            View
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Distributor Sales Cards -->
+                <div class="mb-6 flex justify-between items-center">
+                    <h4 class="text-lg font-semibold text-slate-800">Distributor Sales (This Month)</h4>
+                </div>
+                <div id="distributor-sales-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
+                    <!-- Populated dynamically -->
+                </div>
+            </section>
+
+            <!-- Distributors View -->
+            <section id="view-distributors" class="app-view hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-slate-800">Distributor Management</h3>
+                    <div class="flex space-x-2">
+                        <label class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition-colors cursor-pointer">
+                            <i class="fa-solid fa-file-excel mr-1"></i> Bulk Upload (Excel)
+                            <input type="file" class="hidden" accept=".xlsx, .xls" onchange="app.importExcel(event, 'distributors')">
+                        </label>
+                        <button onclick="app.ui.openDistributorModal()" class="bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition-colors">
+                            <i class="fa-solid fa-plus mr-1"></i> New Distributor
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
+                                    <th class="p-4 font-semibold">Account No.</th>
+                                    <th class="p-4 font-semibold">Name</th>
+                                    <th class="p-4 font-semibold">Region</th>
+                                    <th class="p-4 font-semibold col-contact">Contact</th>
+                                    <th class="p-4 font-semibold">Status</th>
+                                    <th class="p-4 font-semibold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="distributors-table-body" class="text-sm">
+                                <tr><td colspan="6" class="p-8 text-center text-slate-500">Loading data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Targets & Sales View -->
+            <section id="view-targets" class="app-view hidden">
+                 <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-slate-800">Targets & Sales Tracking</h3>
+                    <div class="flex space-x-2">
+                        <label class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition-colors cursor-pointer">
+                            <i class="fa-solid fa-file-excel mr-1"></i> Bulk Sales Upload
+                            <input type="file" class="hidden" accept=".xlsx, .xls" onchange="app.importExcel(event, 'sales')">
+                        </label>
+                        <button onclick="app.ui.openTargetModal()" class="bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition-colors">
+                            <i class="fa-solid fa-bullseye mr-1"></i> Set Target
+                        </button>
+                        <button onclick="app.ui.openSaleModal()" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition-colors">
+                            <i class="fa-solid fa-cart-plus mr-1"></i> Log Sale
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Period (YYYY-MM)</label>
+                    <input type="month" id="filter-period-targets" class="p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand outline-none" onchange="app.renderTargets()">
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden p-6">
+                     <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                         <h4 id="targets-month-display" class="text-xl font-bold text-slate-800 flex items-center"><i class="fa-regular fa-calendar text-brand mr-3"></i> <span></span></h4>
+                         <button onclick="app.resetSales()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors" title="Reset Sales Data">
+                            <i class="fa-solid fa-rotate-left mr-1"></i>Reset Sales
+                         </button>
+                     </div>
+                     <div id="targets-list" class="space-y-6"></div>
+                </div>
+            </section>
+            
+            <!-- Rep Allowance View -->
+            <section id="view-allowance" class="app-view hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-800">Rep Allowance Tracking</h3>
+                        <p class="text-sm text-slate-500">Monitor which distributors have hit targets for allowance eligibility.</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex items-center space-x-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Select Month</label>
+                        <input type="month" id="allowance-month" class="p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand outline-none" onchange="app.renderAllowances()">
+                    </div>
+                    <div class="flex-1 text-right">
+                        <span class="text-sm text-slate-500 mr-2">Allowance Eligibility Threshold:</span>
+                        <span id="display-allowance-threshold" class="font-bold text-brand bg-brand-light bg-opacity-20 px-3 py-1 rounded">100%</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
+                                    <th class="p-4 font-semibold">Account No.</th>
+                                    <th class="p-4 font-semibold">Name</th>
+                                    <th class="p-4 font-semibold">Target</th>
+                                    <th class="p-4 font-semibold">Achieved</th>
+                                    <th class="p-4 font-semibold">Percentage</th>
+                                    <th class="p-4 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allowance-table-body" class="text-sm">
+                                <!-- Data Injected -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics View -->
+            <section id="view-analytics" class="app-view hidden">
+                <div class="mb-6"><h3 class="text-xl font-semibold text-slate-800">Performance Analytics</h3></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6"><h4 class="text-lg font-semibold text-emerald-600 mb-4 flex items-center"><i class="fa-solid fa-trophy mr-2"></i> Top Performers</h4><div id="analytics-top-performers" class="space-y-3"></div></div>
+                    <div class="bg-white rounded-xl shadow-sm border border-red-200 p-6"><h4 class="text-lg font-semibold text-red-600 mb-4 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Underperforming Alerts</h4><div id="analytics-underperforming" class="space-y-3"></div></div>
+                </div>
+            </section>
+
+            <!-- Reports View -->
+            <section id="view-reports" class="app-view hidden">
+                <div class="mb-6"><h3 class="text-xl font-semibold text-slate-800">Export Reports</h3></div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-lg">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Select Distributor</label>
+                            <select id="report-distributor" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none font-sinhala-fallback">
+                                <option value="all">All Distributors</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="pt-4">
+                            <button onclick="app.generateExcelReport()" class="w-full bg-brand hover:bg-brand-dark text-white px-4 py-2.5 rounded-lg shadow-sm font-medium transition-colors flex justify-center items-center">
+                                <i class="fa-solid fa-file-excel mr-2"></i> Generate Excel Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings View (Tabbed) -->
+            <section id="view-settings" class="app-view hidden max-w-5xl mx-auto">
+                <div class="mb-6">
+                    <h3 class="text-2xl font-bold text-slate-800">System Settings</h3>
+                    <p class="text-slate-500">Configure global and tab-specific settings.</p>
+                </div>
+                
+                <div class="flex flex-col md:flex-row gap-6">
+                    <!-- Settings Sidebar -->
+                    <div class="w-full md:w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-2 h-fit">
+                        <ul class="space-y-1">
+                            <li><button onclick="app.ui.switchSettingTab('general')" class="setting-tab-btn active w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-slate-100 text-brand" data-tab="general">General (Theme/Fonts)</button></li>
+                            <li><button onclick="app.ui.switchSettingTab('distributors-settings')" class="setting-tab-btn w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50" data-tab="distributors-settings">Distributors Config</button></li>
+                            <li><button onclick="app.ui.switchSettingTab('targets-settings')" class="setting-tab-btn w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50" data-tab="targets-settings">Targets & Sales Config</button></li>
+                            <li><button onclick="app.ui.switchSettingTab('allowance-settings')" class="setting-tab-btn w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50" data-tab="allowance-settings">Rep Allowance Config</button></li>
+                            <li><button onclick="app.ui.switchSettingTab('data-settings')" class="setting-tab-btn w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50" data-tab="data-settings">Backup & Restore</button></li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Settings Content -->
+                    <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200">
+                        
+                        <!-- General Settings -->
+                        <div id="setting-tab-general" class="setting-tab-content p-6 block">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-6 border-b pb-2">General Configuration</h4>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">POS System Name</label>
+                                    <input type="text" id="setting-pos-name" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Theme Color</label>
+                                    <div class="flex space-x-3 mt-2">
+                                        <button class="theme-btn w-8 h-8 rounded-full bg-blue-600 focus:outline-none ring-2 ring-offset-2 ring-transparent" data-color="blue" onclick="app.settings.setThemeColor('blue', '#2563eb')"></button>
+                                        <button class="theme-btn w-8 h-8 rounded-full bg-zinc-600 focus:outline-none ring-2 ring-offset-2 ring-transparent" data-color="zinc" onclick="app.settings.setThemeColor('zinc', '#52525b')"></button>
+                                        <button class="theme-btn w-8 h-8 rounded-full bg-emerald-600 focus:outline-none ring-2 ring-offset-2 ring-transparent" data-color="emerald" onclick="app.settings.setThemeColor('emerald', '#059669')"></button>
+                                        <button class="theme-btn w-8 h-8 rounded-full bg-purple-600 focus:outline-none ring-2 ring-offset-2 ring-transparent" data-color="purple" onclick="app.settings.setThemeColor('purple', '#9333ea')"></button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Font Family</label>
+                                    <select id="setting-font-family" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                                        <option value="'Inter', sans-serif">Inter (Modern)</option>
+                                        <option value="'Roboto', sans-serif">Roboto (Corporate)</option>
+                                        <option value="'Poppins', sans-serif">Poppins (Friendly)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Base Font Size</label>
+                                    <div class="flex items-center space-x-4 mt-2">
+                                        <input type="range" id="setting-font-size" min="14" max="20" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                                        <span id="font-size-display" class="text-sm font-bold text-slate-700 w-12 text-center bg-slate-100 py-1 rounded">16px</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h4 class="text-lg font-semibold text-slate-800 mb-4 border-b pb-2">Tab Naming</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Dashboard Tab Name</label>
+                                    <input type="text" id="setting-tab-name-dashboard" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Distributors Tab Name</label>
+                                    <input type="text" id="setting-tab-name-distributors" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Targets & Sales Tab Name</label>
+                                    <input type="text" id="setting-tab-name-targets" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Rep Allowance Tab Name</label>
+                                    <input type="text" id="setting-tab-name-allowance" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Analytics Tab Name</label>
+                                    <input type="text" id="setting-tab-name-analytics" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Reports Tab Name</label>
+                                    <input type="text" id="setting-tab-name-reports" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Distributors Settings -->
+                        <div id="setting-tab-distributors-settings" class="setting-tab-content p-6 hidden">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-6 border-b pb-2">Distributors Tab Configuration</h4>
+                            <div class="space-y-4">
+                                <label class="flex items-center space-x-3">
+                                    <input type="checkbox" id="setting-dist-show-contact" class="w-4 h-4 text-brand rounded focus:ring-brand border-slate-300">
+                                    <span class="text-sm font-medium text-slate-700">Show Contact Number column in table</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Targets Settings -->
+                        <div id="setting-tab-targets-settings" class="setting-tab-content p-6 hidden">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-6 border-b pb-2">Targets & Sales Configuration</h4>
+                            <div class="space-y-8">
+                                <!-- Global Default Target -->
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Default Monthly Target Quantity</label>
+                                    <p class="text-xs text-slate-500 mb-2">Used if a distributor does not have a specific target set.</p>
+                                    <input type="number" id="setting-target-default" class="w-full max-w-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none" placeholder="e.g. 500">
+                                </div>
+                                
+                                <!-- Set Specific Target -->
+                                <div class="pt-6 border-t border-slate-100">
+                                    <h5 class="text-md font-semibold text-slate-800 mb-4">Set Specific Monthly Target</h5>
+                                    <p class="text-xs text-slate-500 mb-4">Override the default target for a specific distributor in a specific month.</p>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">Distributor</label>
+                                            <select id="setting-specific-distributor" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                                <option value="">Select Distributor...</option>
+                                                <!-- Populated by JS -->
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">Month</label>
+                                            <input type="month" id="setting-specific-month" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">Target Quantity</label>
+                                            <div class="flex space-x-2">
+                                                <input type="number" id="setting-specific-target-qty" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm" placeholder="Qty">
+                                                <button onclick="app.setSpecificTarget()" class="bg-brand hover:bg-brand-dark text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                                                    Save
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Targets Color Scales -->
+                                <div class="pt-6 border-t border-slate-100">
+                                    <h5 class="text-md font-semibold text-slate-800 mb-4">Progress Bar Color Scales (%)</h5>
+                                    <p class="text-xs text-slate-500 mb-4">Define the percentage thresholds where the progress bar changes color.</p>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">Orange Threshold</label>
+                                            <input type="number" id="setting-scale-orange" min="0" max="100" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm" placeholder="e.g. 25">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">Yellow Threshold</label>
+                                            <input type="number" id="setting-scale-yellow" min="0" max="100" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm" placeholder="e.g. 50">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">Green Threshold</label>
+                                            <input type="number" id="setting-scale-green" min="0" max="100" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm" placeholder="e.g. 75">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Card Layout -->
+                                <div class="pt-6 border-t border-slate-100">
+                                    <h5 class="text-md font-semibold text-slate-800 mb-4">Card Layout Width</h5>
+                                    <p class="text-xs text-slate-500 mb-4">Adjust the width of the target cards by changing how many are displayed per row.</p>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">Cards Per Row (Desktop)</label>
+                                            <select id="setting-cards-per-row" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                                <option value="1">1 Card (Full Width)</option>
+                                                <option value="2">2 Cards (Large)</option>
+                                                <option value="3" selected>3 Cards (Medium)</option>
+                                                <option value="4">4 Cards (Small)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Allowance Settings -->
+                        <div id="setting-tab-allowance-settings" class="setting-tab-content p-6 hidden">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-6 border-b pb-2">Rep Allowance Configuration</h4>
+                            
+                            <div class="space-y-4 mb-8">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Eligibility Threshold (%)</label>
+                                    <p class="text-xs text-slate-500 mb-2">The percentage of the target a distributor must achieve to be eligible for allowance automatically.</p>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="number" id="setting-allowance-threshold" min="0" max="200" class="w-24 p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                                        <span class="text-slate-600 font-medium">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Manually Update Status -->
+                            <div class="pt-6 border-t border-slate-100">
+                                <h5 class="text-md font-semibold text-slate-800 mb-4">Manually Update Allowance Status</h5>
+                                <p class="text-xs text-slate-500 mb-4">Override the automatic status for a specific distributor in a specific month.</p>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="block text-xs font-medium text-slate-700 mb-1">Distributor</label>
+                                        <select id="setting-allowance-distributor" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                            <option value="">Select Distributor...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-slate-700 mb-1">Month</label>
+                                        <input type="month" id="setting-allowance-month" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-medium text-slate-700 mb-1">Status</label>
+                                        <select id="setting-allowance-status" onchange="app.ui.toggleAllowanceRemark()" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm">
+                                            <option value="">Select Status...</option>
+                                            <option value="Processed">Paid (Processed)</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Not Eligible">Not Eligible</option>
+                                        </select>
+                                    </div>
+                                    <div id="allowance-remark-container" class="hidden">
+                                        <label class="block text-xs font-medium text-slate-700 mb-1">Remark</label>
+                                        <div class="flex space-x-2">
+                                            <input type="text" id="setting-allowance-remark" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none text-sm" placeholder="e.g. Waiting for approval">
+                                            <button onclick="app.saveAllowanceStatus()" class="bg-brand hover:bg-brand-dark text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                                                Save
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Save button if remark is hidden -->
+                                <div class="mt-4 flex justify-end" id="allowance-save-btn-container">
+                                    <button onclick="app.saveAllowanceStatus()" class="bg-brand hover:bg-brand-dark text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                                        Save Status
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Settings -->
+                        <div id="setting-tab-data-settings" class="setting-tab-content p-6 hidden">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-6 border-b pb-2">Data Management</h4>
+                            <div class="flex space-x-4">
+                                <button onclick="app.exportData()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                    <i class="fa-solid fa-download mr-2"></i> Export Data Backup
+                                </button>
+                                <label class="bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer">
+                                    <i class="fa-solid fa-upload mr-2"></i> Import Data
+                                    <input type="file" id="import-file" class="hidden" accept=".json" onchange="app.importData(event)">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-slate-50 border-t border-slate-200 flex justify-end rounded-b-xl">
+                            <button onclick="app.settings.saveSettings()" class="bg-brand hover:bg-brand-dark text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition-colors text-lg">
+                                <i class="fa-solid fa-save mr-2"></i> Save All Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Distributor Modal -->
+    <div id="modal-distributor" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <!-- Details omitted for brevity as they are unchanged -->
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+             <!-- Modal content -->
+             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="text-xl font-bold text-slate-800" id="modal-distributor-title">Add Distributor</h3>
+                <button onclick="app.ui.closeModal('modal-distributor')" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-6">
+                <form id="form-distributor" onsubmit="app.saveDistributor(event)">
+                    <input type="hidden" id="distributor-id">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Account Number *</label>
+                            <input type="text" id="dist-account" required class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Business/Owner Name *</label>
+                            <input type="text" id="dist-name" required class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none font-sinhala-fallback">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Region *</label>
+                                <input type="text" id="dist-region" required class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Contact Number</label>
+                                <input type="text" id="dist-contact" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 flex justify-end space-x-3">
+                        <button type="button" onclick="app.ui.closeModal('modal-distributor')" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-brand text-white rounded-lg">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Target Modal -->
+    <div id="modal-target" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="text-xl font-bold text-slate-800">Set Monthly Target</h3>
+                <button onclick="app.ui.closeModal('modal-target')" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-6">
+                <form id="form-target" onsubmit="app.saveTarget(event)">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Distributor *</label>
+                            <select id="target-distributor" required class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none font-sinhala-fallback">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Month *</label>
+                                <input type="month" id="target-month" required class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Target Qty *</label>
+                                <input type="number" id="target-qty" required min="1" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 flex justify-end space-x-3">
+                        <button type="button" onclick="app.ui.closeModal('modal-target')" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-brand text-white rounded-lg">Save Target</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sale Modal -->
+    <div id="modal-sale" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="text-xl font-bold text-slate-800">Log Sale</h3>
+                <button onclick="app.ui.closeModal('modal-sale')" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-6">
+                <form id="form-sale" onsubmit="app.saveSale(event)">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Distributor *</label>
+                            <select id="sale-distributor" required class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none font-sinhala-fallback">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Date *</label>
+                                <input type="date" id="sale-date" required class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Invoice No.</label>
+                                <input type="text" id="sale-invoice" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">2W Qty</label>
+                                <input type="number" id="sale-2w" min="0" value="0" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none" oninput="document.getElementById('sale-qty').value = (parseInt(this.value)||0) + (parseInt(document.getElementById('sale-3w').value)||0)">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">3W Qty</label>
+                                <input type="number" id="sale-3w" min="0" value="0" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none" oninput="document.getElementById('sale-qty').value = (parseInt(document.getElementById('sale-2w').value)||0) + (parseInt(this.value)||0)">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Total *</label>
+                                <input type="number" id="sale-qty" required min="0" class="w-full p-2.5 border border-emerald-400 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-emerald-50 font-bold text-emerald-800" readonly>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Brand</label>
+                                <input type="text" id="sale-brand" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Size</label>
+                                <input type="text" id="sale-size" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand outline-none">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 flex justify-end space-x-3">
+                        <button type="button" onclick="app.ui.closeModal('modal-sale')" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-slate-800 text-white rounded-lg">Log Sale</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+        }
+    </script>
+</body>
+</html>
