@@ -1,0 +1,31 @@
+# Gradle
+.gradle
+gradle
+local.properties
+*.gradle
+*.gradle.kts
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Build
+build/
+bin/
+
+# IDE
+.DS_Store
+*.swp
+*.swo
+*~
+.classpath
+.project
+.settings/
+
+# Runtime
+.externalNativeBuild
